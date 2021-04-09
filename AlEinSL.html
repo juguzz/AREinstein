@@ -69,10 +69,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       scene.enableStats(false);
 
       let arObject = new Node();
-      arObject.visible = false;
+      arObject.visible = true;
       scene.addNode(arObject);
 
       let flower = new Gltf2Node({url: 'media/gltf/space/space.gltf'});
+      flower.scale = [0.15, 0.15, 0.15];
       arObject.addNode(flower);
 
       let reticle = new Gltf2Node({url: 'media/gltf/reticle/reticle.gltf'});
@@ -164,6 +165,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       // Adds a new object to the scene at the
       // specified transform.
       function addARObjectAt(matrix) {
+        arObject.visible = false;
         let newFlower = arObject.clone();
         newFlower.visible = true;
         newFlower.matrix = matrix;
