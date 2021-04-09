@@ -186,17 +186,7 @@ export class Scene extends Node {
     this._statsEnabled = enable;
 
     if (enable) {
-      this._stats = new StatsViewer();
-      this._stats.selectable = true;
-      this.addNode(this._stats);
 
-      if (this._statsStanding) {
-        this._stats.translation = [0, 1.4, -0.75];
-      } else {
-        this._stats.translation = [0, -0.3, -0.5];
-      }
-      this._stats.scale = [0.3, 0.3, 0.3];
-      quat.fromEuler(this._stats.rotation, -45.0, 0.0, 0.0);
     } else if (!enable) {
       if (this._stats) {
         this.removeNode(this._stats);
