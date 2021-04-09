@@ -33,11 +33,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   </head>
   <body>
     <header>
-      <details open>
+      <div>
         <summary>Albert Einstein</summary>
         <p>
           La vida es como andar en bicicleta. Para mantener el equilibrio, debe mantenerse en movimiento.
-          <a class="back" href="./">Back</a>
+        </p>
+      </div>
+      <details open>
+        <p>
+          Busca una superficie lisa para colocar el planetario.
         </p>
       </details>
     </header>
@@ -80,7 +84,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       vec3.set(shadow.scale, 0.15, 0.15, 0.15);
       arObject.addNode(shadow);
 
-      const MAX_FLOWERS = 30;
+      const MAX_FLOWERS = 1;
       let flowers = [];
 
       // Ensure the background is transparent for AR.
@@ -90,9 +94,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
         xrButton = new WebXRButton({
           onRequestSession: onRequestSession,
           onEndSession: onEndSession,
-          textEnterXRTitle: "START AR",
-          textXRNotFoundTitle: "AR NOT FOUND",
-          textExitXRTitle: "EXIT  AR",
+          textEnterXRTitle: "Comenzar AR",
+          textXRNotFoundTitle: "AR No Encontrado",
+          textExitXRTitle: "Finalizar  AR",
         });
         document.querySelector('header').appendChild(xrButton.domElement);
 
