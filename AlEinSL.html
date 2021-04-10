@@ -29,27 +29,25 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     <link rel='icon' type='image/png' sizes='96x96' href='favicon-96x96.png'>
     <link rel='stylesheet' href='css/common.css'>
 
-    <title>Room Scale</title>
+    <title>Albert Einstein</title>
   </head>
   <body>
     <header>
-      <details open>
-        <summary>Room Scale</summary>
+      <div>
+        <summary><b>Feliz Cumple Escuela Albert Einstein !!!</b></summary>
         <p>
-          This sample demonstrates using a 'local-floor' reference space to provide
-          room scale tracking.
-          <a class="back" href="./">Back</a>
+          La vida es como andar en bicicleta. Para mantener el equilibrio, debes seguir moviéndote.<br>Albert Einstein.
         </p>
-      </summary>
+      </div>
+      <img style="width: 100%; height: auto;" src="media/textures/escuela.jpeg" alt="Escuela Albert Einstein">
     </header>
     <script type="module">
       import {WebXRButton} from './js/util/webxr-button.js';
       import {Scene} from './js/render/scenes/scene.js';
       import {Renderer, createWebGLContext} from './js/render/core/renderer.js';
-      import {Gltf2Node} from './js/render/nodes/gltf2.js';
       import {SkyboxNode} from './js/render/nodes/skybox.js';
-      import {BoundsRenderer} from './js/render/nodes/bounds-renderer.js';
       import {InlineViewerHelper} from './js/util/inline-viewer-helper.js';
+      import {Gltf2Node} from './js/render/nodes/gltf2.js';
       import {QueryArgs} from './js/util/query-args.js';
 
       // If requested, use the polyfill to provide support for mobile devices
@@ -68,21 +66,29 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       let gl = null;
       let renderer = null;
       let scene = new Scene();
-      scene.addNode(new Gltf2Node({url: 'media/gltf/camp/camp.gltf'}));
-      scene.addNode(new SkyboxNode({url: 'media/textures/eilenriede-park-2k.png'}));
-      scene.standingStats(true);
-
-      let boundsRenderer = null;
+      let solarSystem = new Gltf2Node({url: 'media/gltf/space/space.gltf'});
+      // The solar system is big (citation needed). Scale it down so that users
+      // can move around the planets more easily.
+      solarSystem.scale = [0.1, 0.1, 0.1];
+      scene.addNode(solarSystem);
+      // Still adding a skybox, but only for the benefit of the inline view.
+      let skybox = new SkyboxNode({url: 'media/textures/milky-way-4k.png'});
+      scene.addNode(skybox);
 
       function initXR() {
         xrButton = new WebXRButton({
           onRequestSession: onRequestSession,
-          onEndSession: onEndSession
+          onEndSession: onEndSession,
+          textEnterXRTitle: "Play AR",
+          textXRNotFoundTitle: " ",
+          textExitXRTitle: "Finalizar AR",
         });
         document.querySelector('header').appendChild(xrButton.domElement);
 
         if (navigator.xr) {
-          navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+          // Checks to ensure that 'immersive-ar' mode is available, and only
+          // enables the button if so.
+          navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
             xrButton.enabled = supported;
           });
 
@@ -91,18 +97,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       }
 
       function onRequestSession() {
-        return navigator.xr.requestSession('immersive-vr', {
-            // Our standing experience will require at least a local-floor
-            // reference space (which will be available even on 3DoF device)
-            // but can optionally make use of bounded-floor reference spaces
-            // when available.
-            requiredFeatures: ['local-floor'],
-            optionalFeatures: ['bounded-floor']
-        }).then((session) => {
-          xrButton.setSession(session);
-          session.isImmersive = true;
-          onSessionStarted(session);
-        });
+        // Requests an 'immersive-ar' session, which ensures that the users
+        // environment will be visible either via video passthrough or a
+        // transparent display. This may be presented either in a headset or
+        // fullscreen on a mobile device.
+        return navigator.xr.requestSession('immersive-ar')
+            .then((session) => {
+              xrButton.setSession(session);
+              session.isImmersive = true;
+              onSessionStarted(session);
+            });
       }
 
       function initGL() {
@@ -129,58 +133,25 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       function onSessionStarted(session) {
         session.addEventListener('end', onSessionEnded);
 
+        if (session.isImmersive) {
+          // When in 'immersive-ar' mode don't draw an opaque background because
+          // we want the real world to show through.
+          skybox.visible = false;
+        }
+
         initGL();
 
-        let glLayer = new XRWebGLLayer(session, gl);
-        session.updateRenderState({ baseLayer: glLayer });
+        session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
 
-        function onRefSpaceCreated(refSpace) {
+        let refSpaceType = session.isImmersive ? 'local' : 'viewer';
+        session.requestReferenceSpace(refSpaceType).then((refSpace) => {
           if (session.isImmersive) {
             xrImmersiveRefSpace = refSpace;
           } else {
-            // If we're using a viewer reference space we need to scoot the
-            // origin down a bit to put the camera at approximately the right
-            // level. (Here we're moving it 1.6 meters, which is *very* roughly
-            // the eye height of an "average" adult human.)
             inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
-            inlineViewerHelper.setHeight(1.6);
-
-            // You can accomplish the same thing without the helper class by
-            // simply offseting the reference space with a negative y value:
-            // refSpace = refSpace.getOffsetReferenceSpace(new XRRigidTransform({y: -1.6}));
           }
           session.requestAnimationFrame(onXRFrame);
-        }
-
-        if (session.isImmersive) {
-          // Attempt to get a 'bounded-floor' reference space, which will align
-          // the user's physical floor with Y=0 and provide boundaries that
-          // indicate where the user can safely walk.
-          session.requestReferenceSpace('bounded-floor').then((refSpace) => {
-            onRefSpaceCreated(refSpace);
-
-            if (!boundsRenderer) {
-              boundsRenderer = new BoundsRenderer(refSpace);
-              scene.addNode(boundsRenderer);
-            } else {
-              boundsRenderer.boundedRefSpace = refSpace;
-            }
-          }).catch(() => {
-            // If a bounded reference space isn't supported, fall back to a
-            // local-floor reference space. This still provides a floor-relative
-            // space and will always be supported for immersive sessions. It
-            // will not, however, provide boundaries and generally expects the
-            // user to stand in one place. If the device doesn't have a way of
-            // determining the floor level (for example, with a 3DoF device)
-            // then it will return an emulated local-floor space, where the view
-            // is translated up by a static height so that the scene still
-            // renders in approximately the right place.
-            console.log('Falling back to local-floor reference space');
-            session.requestReferenceSpace('local-floor').then(onRefSpaceCreated);
-          });
-        } else {
-          session.requestReferenceSpace('viewer').then(onRefSpaceCreated);
-        }
+        });
       }
 
       function onEndSession(session) {
@@ -190,9 +161,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       function onSessionEnded(event) {
         if (event.session.isImmersive) {
           xrButton.setSession(null);
+          // Turn the background back on when we go back to the inlive view.
+          skybox.visible = true;
         }
       }
 
+      // Called every time a XRSession requests that a new frame be drawn.
       function onXRFrame(t, frame) {
         let session = frame.session;
         let refSpace = session.isImmersive ?
@@ -204,10 +178,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
         session.requestAnimationFrame(onXRFrame);
 
-        // Every XR frame uses basically the same render loop, so for the sake
-        // of keeping the sample code focused on the interesting bits most
-        // samples after this one will start using this helper function to hide
-        // away the majority of the rendering logic.
         scene.drawXRFrame(frame, pose);
 
         scene.endFrame();
